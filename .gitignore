@@ -53,3 +53,4 @@ dkms.conf
 
 # Mac temp files
 .DS_Store
+ref.txt
