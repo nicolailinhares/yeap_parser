@@ -59,10 +59,26 @@ void stack_case_4(void) {
   free_stack(stack);
 }
 
-#define CASES_LENGTH 4
+void stack_case_5(void) {
+  int_stack *stack = alloc_stack();
+
+  push(stack, 18);
+  push(stack, -78);
+  push(stack, -88);
+  push(stack, 34);
+  push(stack, 10);
+
+  assert(false == is_immediately_under(stack, -88));
+  pop(stack);
+  assert(true == is_immediately_under(stack, -88));
+
+  free_stack(stack);
+}
+
+#define CASES_LENGTH 5
 
 int stack_tests(void) {
-  case_test cases[CASES_LENGTH] = {&stack_case_1, &stack_case_2, &stack_case_3, &stack_case_4};
+  case_test cases[CASES_LENGTH] = {&stack_case_1, &stack_case_2, &stack_case_3, &stack_case_4, &stack_case_5};
   run_tests(cases, CASES_LENGTH);
 
   return 0;

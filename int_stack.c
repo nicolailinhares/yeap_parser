@@ -1,5 +1,5 @@
 #include <stdlib.h>
-
+#include <stdio.h>
 #include "int_stack.h"
 
 int_stack* alloc_stack(void) {
@@ -32,7 +32,7 @@ bool is_empty(int_stack *stack) {
 }
 
 bool is_under(int_stack *stack, int value, int limit) {
-  for(int i = stack->top_index; i >= 0; i--) {
+  for(int i = stack->top_index - 1; i >= 0; i--) {
     if (value == stack->stack[i]) {
       return true;
     }
@@ -43,6 +43,10 @@ bool is_under(int_stack *stack, int value, int limit) {
   }
 
   return false;
+}
+
+bool is_immediately_under(int_stack *stack, int value) {
+  return value == stack->stack[stack->top_index - 1];
 }
 
 ERR free_stack(int_stack *stack) {

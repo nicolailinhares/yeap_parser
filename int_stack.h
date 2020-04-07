@@ -16,6 +16,7 @@ ERR pop(int_stack *stack);
 ERR top(int_stack *stack, int *value);
 bool is_empty(int_stack *stack);
 bool is_under(int_stack *stack, int value, int limit);
+bool is_immediately_under(int_stack *stack, int value);
 ERR free_stack(int_stack *stack);
 
 #endif
