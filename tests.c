@@ -2,6 +2,7 @@
 
 int main(void) {
   dict_tests();
-  json_decode_tests();
   stack_tests();
+  json_decode_tests();
+  json_node_tests();
 }
