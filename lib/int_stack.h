@@ -2,13 +2,10 @@
 #define LINHARES_INT_STACK_H
 
 #include <stdbool.h>
-#include "dynamic_array.h"
+#include "stack.h"
 
 typedef int ERR;
-typedef struct _int_stack {
-  int top_index;
-  array *data;
-} int_stack;
+typedef stack int_stack;
 
 int_stack* int_stack_alloc(void);
 ERR int_stack_push(int_stack *stack, int value);

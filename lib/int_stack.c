@@ -1,46 +1,37 @@
 #include <stdlib.h>
 #include "int_stack.h"
+#include "stack.h"
 
 #define deref_array_value(type_t, arr, i) *((type_t*) arr->data[i])
 
 int_stack* int_stack_alloc(void) {
-  int_stack *stack = malloc(sizeof(int_stack));
-  stack->data = alloc_array(AUTO_CAPACITY);
-  stack->top_index = -1;
-  return stack;
+  return stack_alloc();
 }
 
 ERR int_stack_push(int_stack *stack, int value){
   int *v = malloc(sizeof(int));
   *v = value;
-  array_push(stack->data, (void*) v);
-  stack->top_index = stack->data->length - 1;
+  stack_push(stack, (void*) v);
   return 0;
 }
 
 ERR int_stack_pop(int_stack *stack) {
-  void *v;
-  array_top(stack->data, &v);
-  free(v);
-  array_pop(stack->data);
-  stack->top_index = stack->data->length - 1;
+  stack_pop(stack);
   return 0;
 }
 
 ERR int_stack_top(int_stack *stack, int *value) {
-  if(stack->top_index < 0) {
-    return -1;
+  int *v = NULL;
+  int err = stack_top(stack, (void**) &v);
+  if(err < 0) {
+      return -1;
   }
-
-  int *v;
-  array_top(stack->data, (void**) &v);
   *value = *v;
-
   return 0;
 }
 
 bool int_stack_is_empty(int_stack *stack) {
-  return stack->top_index < 0;
+  return stack_is_empty(stack);
 }
 
 bool int_stack_is_under(int_stack *stack, int value, int limit) {
@@ -63,10 +54,7 @@ bool int_stack_is_immediately_under(int_stack *stack, int value) {
 }
 
 ERR int_stack_free(int_stack *stack) {
-  for (int i = 0; i < stack->data->length; i++) {
-    free(stack->data->data[i]);
-  }
-  free(stack);
+  stack_free(stack);
 
   return 0;
 }
