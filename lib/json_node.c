@@ -74,10 +74,6 @@ ERR json_node_by_key(char *key, json_node *node, /* output */ json_node *value) 
   return 0;
 }
 
-ERR json_decode(char *json_text, int length, /* output */ json_node *node) {
-  return 0;
-}
-
 ERR free_json_node(json_node *node) {
   free(node->key);
   free(node);

@@ -1,8 +1,13 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdlib.h>
+#include <inttypes.h>
 #include "json_decode.h"
 #include "int_stack.h"
+#include "stack.h"
+#include "dict.h"
+#include "dynamic_array.h"
 
 #define ST_OBJ 0
 #define ST_ARR 1
@@ -20,21 +25,37 @@ typedef struct _pair {
   void* value;
 } pair;
 
-typedef ERR (*parse_function)(char c, int_stack *states);
-ERR pick_parse_function(int_stack *states, parse_function *func);
-ERR init_parse(char c, int_stack *states);
-ERR obj_parse(char c, int_stack *states);
-ERR arr_parse(char c, int_stack *states);
-ERR str_parse(char c, int_stack *states);
-ERR int_parse(char c, int_stack *states);
-ERR float_parse(char c, int_stack *states);
-ERR special_value_parse(char c, int_stack *states);
-ERR pair_parse(char c, int_stack *states);
-ERR element_parse(char c, int_stack *states);
-ERR value_parse(char c, int_stack *states);
-ERR escape_parse(char c, int_stack *states);
-ERR pop_until(int state, int_stack *states);
-ERR parse_afert_pop(char c, int state, int_stack *states);
+typedef struct _context {
+  int_stack *states;
+  stack *data_context;
+  char current_token[10000];
+  int current_index;
+  void *current_value;
+} decode_context;
+
+typedef ERR (*parse_function)(char c, decode_context *context);
+static ERR decoding_machine(const char* json_text, const int length, decode_context *context);
+static ERR context_push(decode_context *context, int state);
+static ERR context_add(decode_context *context, char c);
+static void context_reset(decode_context *context);
+static ERR context_transfer_element(decode_context *context);
+static ERR context_pop_data(decode_context *context);
+static ERR context_close(decode_context *context);
+static ERR pick_parse_function(decode_context *context, parse_function *func);
+static ERR obj_parse(char c, decode_context *context);
+static ERR arr_parse(char c, decode_context *context);
+static ERR str_parse(char c, decode_context *context);
+static ERR int_parse(char c, decode_context *context);
+static ERR float_parse(char c, decode_context *context);
+static ERR special_value_parse(char c, decode_context *context);
+static ERR pair_parse(char c, decode_context *context);
+static ERR element_parse(char c, decode_context *context);
+static ERR value_parse(char c, decode_context *context);
+static ERR escape_parse(char c, decode_context *context);
+static ERR pop_until(int state, int_stack *states);
+static ERR parse_afert_pop(char c, int state, decode_context *context);
+static decode_context* alloc_context(bool has_data);
+static void free_context(decode_context *context);
 
 void print_top(int_stack *states){
   int state;
@@ -43,39 +64,61 @@ void print_top(int_stack *states){
 }
 
 ERR validate_json(const char *json_text, const int length) {
-  int_stack *states = int_stack_alloc();
-  int_stack_push(states, ST_VALUE);
+  decode_context *context = alloc_context(false);
+
+  int err = decoding_machine(json_text, length, context);
+
+  free_context(context);
+  return err;
+}
+
+ERR json_decode(const char *json_text, const int length, json_node *json) {
+  decode_context *context = alloc_context(true);
+
+  int err = decoding_machine(json_text, length, context);
+  if (err == ERR_OK) {
+    strcpy(json->key, "((root))");
+    stack_top(context->data_context, &(json->value));
+    stack_pop(context->data_context);
+    err = stack_is_empty(context->data_context) ? ERR_OK : ERR_UNEXPECTED_EOF;
+  }
+
+  free_context(context);
+  return err;
+}
+
+static ERR decoding_machine(const char *json_text, const int length, decode_context *context) {
   parse_function func;
   int err = ERR_OK;
 
+  int_stack_push(context->states, ST_VALUE);
   for(int i = 0; i < length; i++) {
     char c = json_text[i];
 
-    pick_parse_function(states, &func);
-    err = func(c, states);
+    pick_parse_function(context, &func);
+    err = func(c, context);
 
     if(err < 0) {
       return err;
     }
   }
 
-  pick_parse_function(states, &func);
-  err = func(EOF, states);
+  pick_parse_function(context, &func);
+  err = func(EOF, context);
 
   if(err < 0) {
     return err;
   }
 
-  bool is_states_empty = int_stack_is_empty(states);
-  int_stack_free(states);
+  bool is_states_empty = int_stack_is_empty(context->states);
 
   return is_states_empty ? ERR_OK : ERR_UNEXPECTED_EOF;
 }
 
-ERR pick_parse_function(int_stack *states, parse_function *func) {
+static ERR pick_parse_function(decode_context *context, parse_function *func) {
   int state;
 
-  int_stack_top(states, &state);
+  int_stack_top(context->states, &state);
   switch(state) {
     case ST_OBJ:
       *func = &obj_parse;
@@ -111,15 +154,15 @@ ERR pick_parse_function(int_stack *states, parse_function *func) {
   return 0;
 }
 
-ERR obj_parse(char c, int_stack *states) {
+static ERR obj_parse(char c, decode_context *context) {
   int err = 0;
   if(c == '}') {
-    int_stack_pop(states);
+    int_stack_pop(context->states);
   } else if(c == '"') {
-    int_stack_push(states, ST_PAIR);
-    pair_parse(c, states);
+    context_push(context, ST_PAIR);
+    pair_parse(c, context);
   } else if(c == ',') {
-    int_stack_push(states, ST_PAIR);
+    context_push(context, ST_PAIR);
   }
    else if(!isspace(c)) {
     err = ERR_EXPECTING_EOB_OR_PAIR;
@@ -127,105 +170,130 @@ ERR obj_parse(char c, int_stack *states) {
   return err;
 }
 
-ERR arr_parse(char c, int_stack *states) {
+static ERR arr_parse(char c, decode_context *context) {
   if(c == ']') {
-    int_stack_pop(states);
+    context_transfer_element(context);
+    context_pop_data(context);
+    int_stack_pop(context->states);
   } else if (c == ',' || c == '}') {
     return ERR_EXPECTING_ELEMENT;
   } else {
-    int_stack_push(states, ST_ELEMENT);
-    int_stack_push(states, ST_VALUE);
-    value_parse(c, states);
+    context_push(context, ST_ELEMENT);
+    context_push(context, ST_VALUE);
+    value_parse(c, context);
   }
   return 0;
 }
 
-ERR str_parse(char c, int_stack *states) {
+static ERR str_parse(char c, decode_context *context) {
   if(c == '"') {
-    int_stack_pop(states);
+    context_add(context, '\0');
+    context->current_value = malloc(sizeof(char)*(context->current_index + 2));
+    strcpy(context->current_value, context->current_token);
+    context_reset(context);
+    int_stack_pop(context->states);
   } else if (c == '\\') {
-    int_stack_push(states, ST_ESCAPE);
+    context_push(context, ST_ESCAPE);
+  } else {
+    context_add(context, c);
   }
   return 0;
 }
 
-ERR int_parse(char c, int_stack *states) {
+static ERR int_parse(char c, decode_context *context) {
   if (c == '.') {
-    int_stack_pop(states);
-    int_stack_push(states, ST_FLOAT);
+    int_stack_pop(context->states);
+    context_push(context, ST_FLOAT);
+    context_add(context, c);
   } else if (c == ',' || c == '}' || c == ']' || c == EOF) {
-    parse_afert_pop(c, ST_VALUE, states);
+    context_add(context, '\0');
+    context->current_value = malloc(sizeof(int));
+    *((int*) context->current_value) = strtoimax(context->current_token, NULL, 10);
+    context_reset(context);
+    parse_afert_pop(c, ST_VALUE, context);
+  } else {
+    context_add(context, c);
   }
   return 0;
 }
 
-ERR float_parse(char c, int_stack *states) {
+static ERR float_parse(char c, decode_context *context) {
   if (c == '.') {
     return ERR_EXPECTING_DIGIT_OR_END;
+  } else if (c == ',' || c == '}' || c == ']' || c == EOF) {
+    context_add(context, '\0');
+    context->current_value = malloc(sizeof(double));
+    *((double*) context->current_value) = strtod(context->current_token, NULL);
+    context_reset(context);
+    return parse_afert_pop(c, ST_VALUE, context);
   }
-  return int_parse(c, states);
+  return int_parse(c, context);
 }
 
-ERR pair_parse(char c, int_stack *states) {
+static ERR pair_parse(char c, decode_context *context) {
   if (c == '"') {
-    int_stack_push(states, ST_STR);
+    context_push(context, ST_STR);
   } else if (c == ':') {
-    int_stack_push(states, ST_VALUE);
+    context_push(context, ST_VALUE);
   } else if (c == '}') {
     return ERR_EXPECTING_PAIR;
   }
   return 0;
 }
 
-ERR element_parse(char c, int_stack *states) {
+static ERR element_parse(char c, decode_context *context) {
   if (c == '}') {
-    int_stack_pop(states);
+    int_stack_pop(context->states);
   } else if (c == ']') {
     return ERR_EXPECTING_ELEMENT;
-  } else if (c != ',') {
-    int_stack_push(states, ST_VALUE);
-    value_parse(c, states);
+  } else if(c == ',') {
+    context_transfer_element(context);
+  } else {
+    context_push(context, ST_VALUE);
+    value_parse(c, context);
   }
   return 0;
 }
 
-ERR value_parse(char c, int_stack *states) {
+static ERR value_parse(char c, decode_context *context) {
   switch(c) {
     case '"':
-      int_stack_push(states, ST_STR);
+      context_push(context, ST_STR);
       break;
     case '{':
-      int_stack_push(states, ST_OBJ);
+      context_push(context, ST_OBJ);
       break;
     case '[':
-      int_stack_push(states, ST_ARR);
+      context_push(context, ST_ARR);
       break;
     case ',':
-      if(int_stack_is_immediately_under(states, ST_PAIR)) {
-        parse_afert_pop(c, ST_OBJ, states);
+      if(int_stack_is_immediately_under(context->states, ST_PAIR)) {
+        parse_afert_pop(c, ST_OBJ, context);
       }
-      if (int_stack_is_immediately_under(states, ST_ELEMENT)) {
-        parse_afert_pop(c, ST_ELEMENT, states);
+      if (int_stack_is_immediately_under(context->states, ST_ELEMENT)) {
+        parse_afert_pop(c, ST_ELEMENT, context);
       }
       break;
     case '}':
-      parse_afert_pop(c, ST_OBJ, states);
-      if (int_stack_is_immediately_under(states, ST_ELEMENT)) {
-        parse_afert_pop(c, ST_ELEMENT, states);
+      parse_afert_pop(c, ST_OBJ, context);
+      if (int_stack_is_immediately_under(context->states, ST_ELEMENT)) {
+        parse_afert_pop(c, ST_ELEMENT, context);
       }
       break;
     case ']':
-      parse_afert_pop(c, ST_ARR, states);
+      parse_afert_pop(c, ST_ARR, context);
       break;
     case EOF:
-      int_stack_pop(states);
+      int_stack_pop(context->states);
+      context_close(context);
       break;
     default:
       if (isdigit(c)) {
-        int_stack_push(states, ST_INT);
+        context_push(context, ST_INT);
+        int_parse(c, context);
       } else if(c == 'n' || c == 'f' || c == 't') {
-        int_stack_push(states, ST_SPECIAL_VALUE);
-        special_value_parse(c, states);
+        context_push(context, ST_SPECIAL_VALUE);
+        special_value_parse(c, context);
       } else if (!isspace(c)) {
         return ERR_EXPECTING_VALUE;
       }
@@ -233,53 +301,112 @@ ERR value_parse(char c, int_stack *states) {
   return 0;
 }
 
-ERR escape_parse(char c, int_stack *states) {
+static ERR escape_parse(char c, decode_context *context) {
   if(c == '"' || c == '\\') {
-    int_stack_pop(states);
+    int_stack_pop(context->states);
   } else {
     return ERR_UNEXPECTED_ESCAPED_CHAR;
   }
   return 0;
 }
 
-ERR special_value_parse(char c, int_stack *states) {
-  static int idx = 0;
-  static char value[6] = "";
+static ERR special_value_parse(char c, decode_context *context) {
   int err = ERR_OK;
 
   if (c == ',' || c == ']' || c == '}' || c == EOF) {
     char ref[6] = "";
-    value[idx] = '\0';
-
-    switch(value[0]) {
+    context_add(context, '\0');
+    bool *value = malloc(sizeof(bool));
+    switch(context->current_token[0]) {
       case 't':
         strcpy(ref, "true");
+        *value = true;
         break;
       case 'f':
         strcpy(ref, "false");
+        *value = false;
         break;
       case 'n':
         strcpy(ref, "null");
+        free(value);
+        value = NULL;
         break;
     }
-    if (strcmp(ref, value) != 0) {
+    if (strcmp(ref, context->current_token) != 0) {
       err = ERR_EXPECTING_VALUE;
     } else {
-      err = parse_afert_pop(c, ST_VALUE, states);
+      context->current_value = value;
+      err = parse_afert_pop(c, ST_VALUE, context);
     }
-    idx = 0;
-  } else if (idx < 5) {
-    value[idx] = c;
-    idx++;
+    context_reset(context);
+  } else if (context->current_index < 5) {
+    context_add(context, c);
   } else {
     err = ERR_EXPECTING_VALUE;
-    idx = 0;
+    context_reset(context);
   }
 
   return err;
 }
 
-ERR pop_until(int state, int_stack *states) {
+static ERR context_push(decode_context *context, int state) {
+  int err = int_stack_push(context->states, state);
+  if (err == ERR_OK && context->data_context != NULL) {
+    switch(state) {
+      case ST_OBJ:
+        err = stack_push(context->data_context, (void**) alloc_dict());
+        break;
+      case ST_PAIR:
+        err = stack_push(context->data_context, malloc(sizeof(pair)));
+        break;
+      case ST_ARR:
+        err = stack_push(context->data_context, (void**) alloc_array(AUTO_CAPACITY));
+        break;
+    }
+  }
+
+  return err == ERR_OK ? ERR_OK : ERR_COULD_NOT_PUSH_CONTEXT;
+}
+
+static ERR context_add(decode_context *context, char c) {
+  context->current_token[context->current_index++] = c;
+  return 0;
+}
+
+static void context_reset(decode_context *context) {
+  context->current_token[0] = '\0';
+  context->current_index = 0;
+}
+
+static ERR context_transfer_element(decode_context *context) {
+  if (context->data_context != NULL) {
+    array *arr;
+    stack_top(context->data_context, (void**) &arr);
+    array_push(arr, context->current_value);
+  }
+
+  return 0;
+}
+
+static ERR context_pop_data(decode_context *context) {
+  if (context->data_context != NULL) {
+    void *data;
+    stack_top(context->data_context, &data);
+    stack_pop(context->data_context);
+    context->current_value = data;
+  }
+
+  return 0;
+}
+
+static ERR context_close(decode_context *context) {
+  if(context->data_context != NULL) {
+    stack_push(context->data_context, context->current_value);
+  }
+  return 0;
+}
+
+static ERR pop_until(int state, int_stack *states) {
   int curr_state;
   int_stack_top(states, &curr_state);
   while (curr_state != state) {
@@ -292,10 +419,31 @@ ERR pop_until(int state, int_stack *states) {
   return 0;
 }
 
-ERR parse_afert_pop(char c, int state, int_stack *states) {
-  pop_until(state, states);
+static ERR parse_afert_pop(char c, int state, decode_context *context) {
+  pop_until(state, context->states);
 
   parse_function func;
-  pick_parse_function(states, &func);
-  return func(c, states);
+  pick_parse_function(context, &func);
+  return func(c, context);
+}
+
+static decode_context* alloc_context(bool has_data) {
+  decode_context* context = malloc(sizeof(decode_context));
+  context->states = int_stack_alloc();
+  if (has_data) {
+    context->data_context = stack_alloc();
+    context_reset(context);
+  } else {
+    context->data_context = NULL;
+  }
+
+  return context;
+}
+
+static void free_context(decode_context *context) {
+  int_stack_free(context->states);
+  if(context->data_context != NULL) {
+    stack_free(context->data_context);
+  }
+  free(context);
 }

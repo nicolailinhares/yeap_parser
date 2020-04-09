@@ -4,133 +4,85 @@
 #include "unit_test.h"
 
 void json_case_1(void) {
-  char *json = "{\"age\": 46, \"name\": \"jon\", \"balance\": 415.84}";
-  int err = validate_json(json, strlen(json));
-  assert(0 == err);
+  char *json_text = "12";
+  json_node *json = alloc_json_node();
+  int err = json_decode(json_text, strlen(json_text), json);
+  int v;
+  json_int_value(json, &v);
+  assert(12 == v);
+  free_json_node(json);
 }
 
 void json_case_2(void) {
-  char *json = "{\"age\": 12, \"name\": \"jon\", \"balance\": 415.84";
-  assert(ERR_UNEXPECTED_EOF == validate_json(json, strlen(json)));
+  char *json_text = "12.87";
+  json_node *json = alloc_json_node();
+  int err = json_decode(json_text, strlen(json_text), json);
+  double v;
+  json_double_value(json, &v);
+  assert(12.87 == v);
+  free_json_node(json);
 }
 
 void json_case_3(void) {
-  char *json = "{ age\": 12, \"name\": \"jon\", \"balance\": 415.84}";
-  assert(ERR_EXPECTING_EOB_OR_PAIR == validate_json(json, strlen(json)));
+  char *json_text = "\"texto\"";
+  json_node *json = alloc_json_node();
+  int err = json_decode(json_text, strlen(json_text), json);
+  char *v;
+  json_string_value(json, &v);
+  assert(strcmp("texto", v) == 0);
+  free_json_node(json);
 }
 
 void json_case_4(void) {
-  char *json = "{\"age\": 46, \"name\": \"jon\", \"balance\": 415.84,}";
-  int err = validate_json(json, strlen(json));
-  assert(ERR_EXPECTING_PAIR == err);
+  char *json_text = "null";
+  json_node *json = alloc_json_node();
+  int err = json_decode(json_text, strlen(json_text), json);
+  char *v;
+  json_string_value(json, &v);
+  assert(NULL == v);
+  free_json_node(json);
 }
 
 void json_case_5(void) {
-  char *json = "12";
-  int err = validate_json(json, strlen(json));
-  assert(0 == err);
+  char *json_text = "false";
+  json_node *json = alloc_json_node();
+  int err = json_decode(json_text, strlen(json_text), json);
+  bool v;
+  json_bool_value(json, &v);
+  assert(false == v);
+  free_json_node(json);
 }
 
 void json_case_6(void) {
-  char *json = "47.89";
-  int err = validate_json(json, strlen(json));
-  assert(0 == err);
+  char *json_text = "true";
+  json_node *json = alloc_json_node();
+  int err = json_decode(json_text, strlen(json_text), json);
+  bool v;
+  json_bool_value(json, &v);
+  assert(true == v);
+  free_json_node(json);
 }
 
 void json_case_7(void) {
-  char *json = "\"jon(\\\"great\\\\\\\")\"";
-  int err = validate_json(json, strlen(json));
-  assert(0 == err);
+  char *json_text = "[1, 1.8, \"jon\", null, true, false, 10]";
+  json_node *json = alloc_json_node();
+  int err = json_decode(json_text, strlen(json_text), json);
+  array *v;
+  json_array_value(json, &v);
+  void *e;
+  array_get(v, 4, &e);
+  assert(true == *((bool*)e));
+  array_get(v, 2, &e);
+  assert(strcmp("jon", (char*) e) == 0);
+  free_json_node(json);
 }
 
-void json_case_8(void) {
-  char *json = "[1, 1.8, \"jon\", [1 , 2, 3], {\"age\": 46, \"name\": \"jon\", \"balance\": 415.84}]";
-  int err = validate_json(json, strlen(json));
-  assert(0 == err);
-}
-
-void json_case_9(void) {
-  char *json = "{\"age\": 46, \"name\": \"jon\", \"balance\": 415.84, \"jon\": {\"age\": 46, \"name\": \"jon\", \"balance\": 415.84, \"jon\": {\"age\": 46, \"name\": \"jon\", \"balance\": 415.84}} }";
-  int err = validate_json(json, strlen(json));
-  assert(0 == err);
-}
-
-void json_case_10(void) {
-  char *json = "\"a\\ge\"";
-  int err = validate_json(json, strlen(json));
-  assert(ERR_UNEXPECTED_ESCAPED_CHAR == err);
-}
-
-void json_case_11(void) {
-  char *json = "null";
-  int err = validate_json(json, strlen(json));
-  assert(ERR_OK == err);
-}
-
-void json_case_12(void) {
-  char *json = "true";
-  int err = validate_json(json, strlen(json));
-  assert(ERR_OK == err);
-}
-
-void json_case_13(void) {
-  char *json = "false";
-  int err = validate_json(json, strlen(json));
-  assert(ERR_OK == err);
-}
-
-void json_case_14(void) {
-  char *json = "{\"age\": null, \"name\": false, \"balance\": true, \"values\": [null, 1, false, \"str\", 78.65, true]}";
-  int err = validate_json(json, strlen(json));
-  assert(ERR_OK == err);
-}
-
-void json_case_15(void) {
-  char *json = "nll";
-  int err = validate_json(json, strlen(json));
-  assert(ERR_EXPECTING_VALUE == err);
-}
-
-void json_case_16(void) {
-  char *json = "truel";
-  int err = validate_json(json, strlen(json));
-  assert(ERR_EXPECTING_VALUE == err);
-}
-
-void json_case_17(void) {
-  char *json = "falselong";
-  int err = validate_json(json, strlen(json));
-  assert(ERR_EXPECTING_VALUE == err);
-}
-
-void json_case_18(void) {
-  char *json = "[1, 2, 3,]";
-  int err = validate_json(json, strlen(json));
-  assert(ERR_EXPECTING_ELEMENT == err);
-}
-
-void json_case_19(void) {
-  char *json = "[, 1, 2, 3]";
-  int err = validate_json(json, strlen(json));
-  assert(ERR_EXPECTING_ELEMENT == err);
-}
-
-void json_case_20(void) {
-  char *json = "48..7";
-  int err = validate_json(json, strlen(json));
-  assert(ERR_EXPECTING_DIGIT_OR_END == err);
-}
-
-#define CASES_LENGTH 20
+#define CASES_LENGTH 7
 
 int json_decode_tests(void) {
   case_test cases[CASES_LENGTH] = { &json_case_1, &json_case_2, &json_case_3,
                                     &json_case_4, &json_case_5, &json_case_6,
-                                    &json_case_7, &json_case_8, &json_case_9,
-                                    &json_case_10, &json_case_11, &json_case_12,
-                                    &json_case_13, &json_case_14, &json_case_15,
-                                    &json_case_16, &json_case_17, &json_case_18,
-                                    &json_case_19, &json_case_20 };
+                                    &json_case_7 };
   run_tests(cases, CASES_LENGTH);
 
   return 0;

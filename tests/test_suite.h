@@ -6,5 +6,6 @@ int json_decode_tests(void);
 int stack_tests(void);
 int json_node_tests(void);
 int dynamic_array_tests(void);
+int json_parse_tests(void);
 
 #endif

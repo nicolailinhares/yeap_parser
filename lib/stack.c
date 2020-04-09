@@ -17,7 +17,6 @@ ERR stack_push(stack *stack, void *value){
 ERR stack_pop(stack *stack) {
   void *v;
   array_top(stack->data, &v);
-  free(v);
   array_pop(stack->data);
   stack->top_index = stack->data->length - 1;
   return 0;
