@@ -1,5 +1,5 @@
-#ifndef LINHARES_JSON_DECODE_H
-#define LINHARES_JSON_DECODE_H
+#ifndef YETAPARSER_JSON_DECODE_H
+#define YETAPARSER_JSON_DECODE_H
 
 typedef int ERR;
 ERR validate_json(const char *json_text, const int length);

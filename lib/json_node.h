@@ -1,5 +1,5 @@
-#ifndef LINHARES_JSON_NODE_H
-#define LINHARES_JSON_NODE_H
+#ifndef YETAPARSER_JSON_NODE_H
+#define YETAPARSER_JSON_NODE_H
 
 #include "dynamic_array.h"
 

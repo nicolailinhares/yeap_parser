@@ -1,5 +1,5 @@
-#ifndef LINHARES_DICT_H
-#define LINHARES_DICT_H
+#ifndef YETAPARSER_DICT_H
+#define YETAPARSER_DICT_H
 
 #include<stdbool.h>
 

@@ -1,5 +1,5 @@
-#ifndef LINHARES_STACK_H
-#define LINHARES_STACK_H
+#ifndef YETAPARSER_STACK_H
+#define YETAPARSER_STACK_H
 
 #include <stdbool.h>
 #include "dynamic_array.h"

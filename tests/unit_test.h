@@ -1,5 +1,5 @@
-#ifndef LINHARES_UNIT_SUIT_H
-#define LINHARES_UNIT_SUIT_H
+#ifndef YETAPARSER_UNIT_SUIT_H
+#define YETAPARSER_UNIT_SUIT_H
 
 #include <assert.h>
 

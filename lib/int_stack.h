@@ -1,5 +1,5 @@
-#ifndef LINHARES_INT_STACK_H
-#define LINHARES_INT_STACK_H
+#ifndef YETAPARSER_INT_STACK_H
+#define YETAPARSER_INT_STACK_H
 
 #include <stdbool.h>
 #include "stack.h"
