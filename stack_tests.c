@@ -2,77 +2,77 @@
 #include "unit_test.h"
 
 void stack_case_1(void) {
-  int_stack *stack = alloc_stack();
+  int_stack *stack = int_stack_alloc();
 
-  push(stack, 18);
-  push(stack, -78);
+  int_stack_push(stack, 18);
+  int_stack_push(stack, -78);
 
   int top_value;
-  top(stack, &top_value);
+  int_stack_top(stack, &top_value);
   assert(top_value == -78);
 
-  free_stack(stack);
+  int_stack_free(stack);
 }
 
 void stack_case_2(void) {
-  int_stack *stack = alloc_stack();
+  int_stack *stack = int_stack_alloc();
 
-  push(stack, 18);
-  push(stack, -78);
-  pop(stack);
+  int_stack_push(stack, 18);
+  int_stack_push(stack, -78);
+  int_stack_pop(stack);
 
   int top_value;
-  top(stack, &top_value);
+  int_stack_top(stack, &top_value);
   assert(top_value == 18);
 
-  free_stack(stack);
+  int_stack_free(stack);
 }
 
 void stack_case_3(void) {
-  int_stack *stack = alloc_stack();
+  int_stack *stack = int_stack_alloc();
 
-  assert(true == is_empty(stack));
-  push(stack, 18);
-  push(stack, -78);
-  pop(stack);
-  assert(false == is_empty(stack));
-  pop(stack);
-  assert(true == is_empty(stack));
+  assert(true == int_stack_is_empty(stack));
+  int_stack_push(stack, 18);
+  int_stack_push(stack, -78);
+  int_stack_pop(stack);
+  assert(false == int_stack_is_empty(stack));
+  int_stack_pop(stack);
+  assert(true == int_stack_is_empty(stack));
 
-  free_stack(stack);
+  int_stack_free(stack);
 }
 
 void stack_case_4(void) {
-  int_stack *stack = alloc_stack();
+  int_stack *stack = int_stack_alloc();
 
-  push(stack, 18);
-  push(stack, -78);
-  push(stack, -88);
-  push(stack, 34);
-  push(stack, 10);
+  int_stack_push(stack, 18);
+  int_stack_push(stack, -78);
+  int_stack_push(stack, -88);
+  int_stack_push(stack, 34);
+  int_stack_push(stack, 10);
 
-  assert(true == is_under(stack, -78, 18));
-  assert(false == is_under(stack, -78, -88));
-  assert(true == is_under(stack, -78, -78));
-  assert(false == is_under(stack, 0, 0));
+  assert(true == int_stack_is_under(stack, -78, 18));
+  assert(false == int_stack_is_under(stack, -78, -88));
+  assert(true == int_stack_is_under(stack, -78, -78));
+  assert(false == int_stack_is_under(stack, 0, 0));
 
-  free_stack(stack);
+  int_stack_free(stack);
 }
 
 void stack_case_5(void) {
-  int_stack *stack = alloc_stack();
+  int_stack *stack = int_stack_alloc();
 
-  push(stack, 18);
-  push(stack, -78);
-  push(stack, -88);
-  push(stack, 34);
-  push(stack, 10);
+  int_stack_push(stack, 18);
+  int_stack_push(stack, -78);
+  int_stack_push(stack, -88);
+  int_stack_push(stack, 34);
+  int_stack_push(stack, 10);
 
-  assert(false == is_immediately_under(stack, -88));
-  pop(stack);
-  assert(true == is_immediately_under(stack, -88));
+  assert(false == int_stack_is_immediately_under(stack, -88));
+  int_stack_pop(stack);
+  assert(true == int_stack_is_immediately_under(stack, -88));
 
-  free_stack(stack);
+  int_stack_free(stack);
 }
 
 #define CASES_LENGTH 5

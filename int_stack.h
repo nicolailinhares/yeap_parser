@@ -2,21 +2,21 @@
 #define LINHARES_INT_STACK_H
 
 #include <stdbool.h>
-#define STACK_SIZE 10000
+#include "dynamic_array.h"
 
 typedef int ERR;
 typedef struct _int_stack {
   int top_index;
-  int stack[STACK_SIZE];
+  array *data;
 } int_stack;
 
-int_stack* alloc_stack(void);
-ERR push(int_stack *stack, int value);
-ERR pop(int_stack *stack);
-ERR top(int_stack *stack, int *value);
-bool is_empty(int_stack *stack);
-bool is_under(int_stack *stack, int value, int limit);
-bool is_immediately_under(int_stack *stack, int value);
-ERR free_stack(int_stack *stack);
+int_stack* int_stack_alloc(void);
+ERR int_stack_push(int_stack *stack, int value);
+ERR int_stack_pop(int_stack *stack);
+ERR int_stack_top(int_stack *stack, int *value);
+bool int_stack_is_empty(int_stack *stack);
+bool int_stack_is_under(int_stack *stack, int value, int limit);
+bool int_stack_is_immediately_under(int_stack *stack, int value);
+ERR int_stack_free(int_stack *stack);
 
 #endif

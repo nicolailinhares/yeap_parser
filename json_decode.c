@@ -38,13 +38,13 @@ ERR parse_afert_pop(char c, int state, int_stack *states);
 
 void print_top(int_stack *states){
   int state;
-  top(states, &state);
+  int_stack_top(states, &state);
   printf("----STATE %i: %i------", states->top_index, state);
 }
 
 ERR validate_json(const char *json_text, const int length) {
-  int_stack *states = alloc_stack();
-  push(states, ST_VALUE);
+  int_stack *states = int_stack_alloc();
+  int_stack_push(states, ST_VALUE);
   parse_function func;
   int err = ERR_OK;
 
@@ -66,13 +66,16 @@ ERR validate_json(const char *json_text, const int length) {
     return err;
   }
 
-  return is_empty(states) ? ERR_OK : ERR_UNEXPECTED_EOF;
+  bool is_states_empty = int_stack_is_empty(states);
+  int_stack_free(states);
+
+  return is_states_empty ? ERR_OK : ERR_UNEXPECTED_EOF;
 }
 
 ERR pick_parse_function(int_stack *states, parse_function *func) {
   int state;
 
-  top(states, &state);
+  int_stack_top(states, &state);
   switch(state) {
     case ST_OBJ:
       *func = &obj_parse;
@@ -111,12 +114,12 @@ ERR pick_parse_function(int_stack *states, parse_function *func) {
 ERR obj_parse(char c, int_stack *states) {
   int err = 0;
   if(c == '}') {
-    pop(states);
+    int_stack_pop(states);
   } else if(c == '"') {
-    push(states, ST_PAIR);
+    int_stack_push(states, ST_PAIR);
     pair_parse(c, states);
   } else if(c == ',') {
-    push(states, ST_PAIR);
+    int_stack_push(states, ST_PAIR);
   }
    else if(!isspace(c)) {
     err = ERR_EXPECTING_EOB_OR_PAIR;
@@ -126,12 +129,12 @@ ERR obj_parse(char c, int_stack *states) {
 
 ERR arr_parse(char c, int_stack *states) {
   if(c == ']') {
-    pop(states);
+    int_stack_pop(states);
   } else if (c == ',' || c == '}') {
     return ERR_EXPECTING_ELEMENT;
   } else {
-    push(states, ST_ELEMENT);
-    push(states, ST_VALUE);
+    int_stack_push(states, ST_ELEMENT);
+    int_stack_push(states, ST_VALUE);
     value_parse(c, states);
   }
   return 0;
@@ -139,17 +142,17 @@ ERR arr_parse(char c, int_stack *states) {
 
 ERR str_parse(char c, int_stack *states) {
   if(c == '"') {
-    pop(states);
+    int_stack_pop(states);
   } else if (c == '\\') {
-    push(states, ST_ESCAPE);
+    int_stack_push(states, ST_ESCAPE);
   }
   return 0;
 }
 
 ERR int_parse(char c, int_stack *states) {
   if (c == '.') {
-    pop(states);
-    push(states, ST_FLOAT);
+    int_stack_pop(states);
+    int_stack_push(states, ST_FLOAT);
   } else if (c == ',' || c == '}' || c == ']' || c == EOF) {
     parse_afert_pop(c, ST_VALUE, states);
   }
@@ -165,9 +168,9 @@ ERR float_parse(char c, int_stack *states) {
 
 ERR pair_parse(char c, int_stack *states) {
   if (c == '"') {
-    push(states, ST_STR);
+    int_stack_push(states, ST_STR);
   } else if (c == ':') {
-    push(states, ST_VALUE);
+    int_stack_push(states, ST_VALUE);
   } else if (c == '}') {
     return ERR_EXPECTING_PAIR;
   }
@@ -176,11 +179,11 @@ ERR pair_parse(char c, int_stack *states) {
 
 ERR element_parse(char c, int_stack *states) {
   if (c == '}') {
-    pop(states);
+    int_stack_pop(states);
   } else if (c == ']') {
     return ERR_EXPECTING_ELEMENT;
   } else if (c != ',') {
-    push(states, ST_VALUE);
+    int_stack_push(states, ST_VALUE);
     value_parse(c, states);
   }
   return 0;
@@ -189,25 +192,25 @@ ERR element_parse(char c, int_stack *states) {
 ERR value_parse(char c, int_stack *states) {
   switch(c) {
     case '"':
-      push(states, ST_STR);
+      int_stack_push(states, ST_STR);
       break;
     case '{':
-      push(states, ST_OBJ);
+      int_stack_push(states, ST_OBJ);
       break;
     case '[':
-      push(states, ST_ARR);
+      int_stack_push(states, ST_ARR);
       break;
     case ',':
-      if(is_immediately_under(states, ST_PAIR)) {
+      if(int_stack_is_immediately_under(states, ST_PAIR)) {
         parse_afert_pop(c, ST_OBJ, states);
       }
-      if (is_immediately_under(states, ST_ELEMENT)) {
+      if (int_stack_is_immediately_under(states, ST_ELEMENT)) {
         parse_afert_pop(c, ST_ELEMENT, states);
       }
       break;
     case '}':
       parse_afert_pop(c, ST_OBJ, states);
-      if (is_immediately_under(states, ST_ELEMENT)) {
+      if (int_stack_is_immediately_under(states, ST_ELEMENT)) {
         parse_afert_pop(c, ST_ELEMENT, states);
       }
       break;
@@ -215,13 +218,13 @@ ERR value_parse(char c, int_stack *states) {
       parse_afert_pop(c, ST_ARR, states);
       break;
     case EOF:
-      pop(states);
+      int_stack_pop(states);
       break;
     default:
       if (isdigit(c)) {
-        push(states, ST_INT);
+        int_stack_push(states, ST_INT);
       } else if(c == 'n' || c == 'f' || c == 't') {
-        push(states, ST_SPECIAL_VALUE);
+        int_stack_push(states, ST_SPECIAL_VALUE);
         special_value_parse(c, states);
       } else if (!isspace(c)) {
         return ERR_EXPECTING_VALUE;
@@ -232,7 +235,7 @@ ERR value_parse(char c, int_stack *states) {
 
 ERR escape_parse(char c, int_stack *states) {
   if(c == '"' || c == '\\') {
-    pop(states);
+    int_stack_pop(states);
   } else {
     return ERR_UNEXPECTED_ESCAPED_CHAR;
   }
@@ -278,13 +281,13 @@ ERR special_value_parse(char c, int_stack *states) {
 
 ERR pop_until(int state, int_stack *states) {
   int curr_state;
-  top(states, &curr_state);
+  int_stack_top(states, &curr_state);
   while (curr_state != state) {
-    pop(states);
-    if(is_empty(states)) {
+    int_stack_pop(states);
+    if(int_stack_is_empty(states)) {
       return ERR_ANCESTOR_NOT_FOUND;
     }
-    top(states, &curr_state);
+    int_stack_top(states, &curr_state);
   }
   return 0;
 }
