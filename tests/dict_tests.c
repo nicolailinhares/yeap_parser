@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-
-#include "dict.h"
+#include "../lib/dict.h"
 #include "unit_test.h"
 
 void case_1(void) {

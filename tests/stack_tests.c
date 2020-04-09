@@ -1,4 +1,4 @@
-#include "int_stack.h"
+#include "../lib/int_stack.h"
 #include "unit_test.h"
 
 void stack_case_1(void) {

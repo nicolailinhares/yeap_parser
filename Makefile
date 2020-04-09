@@ -1,27 +1,19 @@
-dict:
-	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -c -o dict.o dict.c
+lib_C_SRCS:=$(wildcard lib/*.c)
+lib_C_OBJS:=$(patsubst lib/%.c,%.o,$(wildcard lib/*.c))
+test_C_SRCS:=$(wildcard tests/*.c)
+test_C_OBJS:=$(patsubst tests/%.c,%.o,$(wildcard tests/*.c))
 
-dynamic_array:
-	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -c -o dynamic_array.o dynamic_array.c
+libobjs:
+	mkdir -p build
+	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -c $(lib_C_SRCS)
+	mv $(lib_C_OBJS) build/
 
-int_stack:
-	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -c -o int_stack.o int_stack.c
+testsobjs:
+	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -c $(test_C_SRCS)
+	mv $(test_C_OBJS) build/
 
-json_decode:
-	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -c -o json_decode.o json_decode.c
-
-json_node:
-	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -c -o json_node.o json_node.c
-
-test: dict int_stack dynamic_array json_decode json_node
-	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -c -o unit_test.o unit_test.c
-	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -c -o dict_tests.o dict_tests.c
-	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -c -o json_decode_tests.o json_decode_tests.c
-	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -c -o json_node_tests.o json_node_tests.c
-	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -c -o dynamic_array_tests.o dynamic_array_tests.c
-	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -c -o stack_tests.o stack_tests.c
-	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -c -o tests.o tests.c
-	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -o test.out tests.o unit_test.o stack_tests.o json_decode_tests.o json_node_tests.o dynamic_array_tests.o dict_tests.o dict.o dynamic_array.o int_stack.o json_decode.o json_node.o -lm
+test: libobjs testsobjs
+	clang -ggdb3 -O0 -Qunused-arguments -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -o test.out $(wildcard build/*.o) -lm
 
 clean:
-	rm dict.o dynamic_array.o int_stack.o json_decode.o json_node.o dict_tests.o json_node_tests.o json_decode_tests.o dynamic_array_tests.o stack_tests.o unit_test.o tests.o test.out
+	rm -r build

@@ -1,7 +1,7 @@
-#include<string.h>
-#include<stdio.h>
-#include "dict.h"
-#include "json_node.h"
+#include <string.h>
+#include <stdio.h>
+#include "../lib/dict.h"
+#include "../lib/json_node.h"
 #include "unit_test.h"
 
 void json_node_case_1(void) {

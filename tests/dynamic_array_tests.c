@@ -1,6 +1,6 @@
-#include<string.h>
-#include<stdio.h>
-#include "dynamic_array.h"
+#include <string.h>
+#include <stdio.h>
+#include "../lib/dynamic_array.h"
 #include "unit_test.h"
 
 void dynamic_array_case_1(void) {

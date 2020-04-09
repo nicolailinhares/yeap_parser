@@ -1,6 +1,6 @@
-#include<string.h>
-#include<stdio.h>
-#include "json_decode.h"
+#include <string.h>
+#include <stdio.h>
+#include "../lib/json_decode.h"
 #include "unit_test.h"
 
 void json_case_1(void) {
