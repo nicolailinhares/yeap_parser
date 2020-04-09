@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "dict.h"
+#include "dynamic_array.h"
 #include "json_node.h"
 
 #define MAX_KEY_LENGTH 45
@@ -38,7 +39,8 @@ ERR json_node_value(json_node *node, /* output */ json_node *value) {
   return 0;
 }
 
-ERR json_array_value(json_node *node, /* output */ void *value[]) {
+ERR json_array_value(json_node *node, /* output */ array **value) {
+  *value = (array *) node->value;
   return 0;
 }
 

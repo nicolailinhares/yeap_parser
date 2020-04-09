@@ -15,6 +15,11 @@
 #define ST_VALUE 10
 #define ST_ESCAPE 11
 
+typedef struct _pair {
+  char* key;
+  void* value;
+} pair;
+
 typedef ERR (*parse_function)(char c, int_stack *states);
 ERR pick_parse_function(int_stack *states, parse_function *func);
 ERR init_parse(char c, int_stack *states);

@@ -53,9 +53,38 @@ void json_node_case_4(void) {
 }
 
 void json_node_case_5(void) {
-  //"[1, 1.8, \"jon\", [1 , 2, 3], {\"age\": 46, \"name\": \"jon\", \"balance\": 415.84}]";
-  printf(" json_node_case_5:skipped ");
-  //assert(0 == err);
+  //"[1, 1.8, \"jon\", {\"age\": 46, \"balance\": 415.84}]";
+  dict *root = alloc_dict();
+  insert_int(root, "age", 46);
+  insert_double(root, "balance", 415.84);
+
+  int value0 = 1;
+  double value1 = 1.8;
+  char* value2 = "jon";
+
+  array* arr = alloc_array(AUTO_CAPACITY);
+  array_push(arr, (void*) &value0);
+  array_push(arr, (void*) &value1);
+  array_push(arr, (void*) value2);
+  array_push(arr, (void*) root);
+
+  json_node *node = alloc_json_node();
+  node->value = (void *) arr;
+
+  array *value_arr;
+  json_array_value(node, &value_arr);
+  int *value;
+  array_get(value_arr, 0, (void**) &value);
+  assert(*value == value0);
+
+  dict *value_root;
+  array_get(value_arr, 3, (void**) &value_root);
+  get_int(value_root, "age", value);
+  assert(*value == 46);
+
+  free_array(arr);
+  free_dict(root);
+  free_json_node(node);
 }
 
 void json_node_case_6(void) {
