@@ -121,7 +121,13 @@ void json_parse_case_20(void) {
   assert(ERR_EXPECTING_DIGIT_OR_END == err);
 }
 
-#define CASES_LENGTH 20
+void json_parse_case_21(void) {
+  char *json = "{\"age\": 46, \"name\": \"jon\", \"balance\": 415.84, \"statements\": [{\"name\": \"joe\", \"value\": 215.84}, {\"name\": \"bob\", \"value\": 15.6}]}";;
+  int err = validate_json(json, strlen(json));
+  assert(ERR_OK == err);
+}
+
+#define CASES_LENGTH 21
 
 int json_parse_tests(void) {
   case_test cases[CASES_LENGTH] = { &json_parse_case_1, &json_parse_case_2, &json_parse_case_3,
@@ -130,7 +136,7 @@ int json_parse_tests(void) {
                                     &json_parse_case_10, &json_parse_case_11, &json_parse_case_12,
                                     &json_parse_case_13, &json_parse_case_14, &json_parse_case_15,
                                     &json_parse_case_16, &json_parse_case_17, &json_parse_case_18,
-                                    &json_parse_case_19, &json_parse_case_20 };
+                                    &json_parse_case_19, &json_parse_case_20, &json_parse_case_21 };
   run_tests(cases, CASES_LENGTH);
 
   return 0;

@@ -7,7 +7,6 @@
 
 #define MAX_KEY_LENGTH 45
 
-ERR json_dict_value(json_node *node, /* output */ dict **root);
 ERR decode_key_subscription(char *key, /* output */ int *length, char **keys);
 void alloc_key_to_position(char *key, int size, char **keys, int position);
 ERR free_decoded_keys(int length, char **keys);
@@ -20,11 +19,6 @@ json_node* alloc_json_node() {
   return node;
 }
 
-ERR json_dict_value(json_node *node, /* output */ dict **root) {
-  *root = (dict *) node->value;
-  return 0;
-}
-
 ERR json_int_value(json_node *node, /* output */ int *value) {
   *value = *((int*) node->value);
   return 0;
@@ -35,7 +29,8 @@ ERR json_double_value(json_node *node, /* output */ double *value) {
   return 0;
 }
 
-ERR json_node_value(json_node *node, /* output */ json_node *value) {
+ERR json_dict_value(json_node *node, /* output */ dict **value) {
+  *value = (dict *) node->value;
   return 0;
 }
 

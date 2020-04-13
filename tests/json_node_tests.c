@@ -89,9 +89,9 @@ void json_node_case_5(void) {
 
 void json_node_case_6(void) {
   //"null"
-  json_node *value = NULL;
+  char *value = NULL;
   json_node *node = alloc_json_node();
-  json_node_value(node, value);
+  json_string_value(node, &value);
   assert(NULL == value);
   free_json_node(node);
 }
